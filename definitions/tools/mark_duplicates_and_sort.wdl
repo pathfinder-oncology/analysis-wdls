@@ -4,6 +4,7 @@ task markDuplicatesAndSort {
   input {
     File bam
     String output_name = "MarkedSorted.bam"
+    Int preemptible_tries = 1
   }
   String metrics_file_name = sub(output_name, "\.bam$", ".mark_dups_metrics.txt")
   Int space_needed_gb = 20 + round(5*size(bam, "GB"))
@@ -11,7 +12,7 @@ task markDuplicatesAndSort {
   #markdup is listed as 2Gb per 100M reads
   Int mem_needed_gb = round(((size(bam, "GB")*15)/100)*2)+32
   runtime {
-    preemptible: 0
+    preemptible: preemptible_tries
     maxRetries: 2
     docker: "quay.io/biocontainers/sambamba:0.8.2--h98b6b92_2"
     memory: "~{mem_needed_gb}GB"
@@ -40,10 +41,12 @@ workflow wf {
   input {
     File bam
     String? output_name
+    Int preemptible_tries = 1
   }
   call markDuplicatesAndSort {
     input:
     bam=bam,
-    output_name=output_name
+    output_name=output_name,
+    preemptible_tries=preemptible_tries
   }
 }

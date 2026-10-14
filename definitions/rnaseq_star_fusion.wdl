@@ -101,9 +101,11 @@ workflow rnaseqStarFusion {
     input: input_bam=starFusionDetect.aligned_bam
   }
 
+  # On the critical path for hours; a Spot preemption restarts it from zero.
   call mdas.markDuplicatesAndSort as markDup {
     input:
-    bam=sortBam.sorted_bam
+    bam=sortBam.sorted_bam,
+    preemptible_tries=0
   }
 
   call ib.indexBam {

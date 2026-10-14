@@ -97,9 +97,11 @@ workflow rnaseq {
     input: bam=positionSort.sorted_bam
   }
 
+  # On the critical path for hours; a Spot preemption restarts it from zero.
   call mdas.markDuplicatesAndSort as markDup {
     input:
-    bam=indexBam.indexed_bam
+    bam=indexBam.indexed_bam,
+    preemptible_tries=0
   }
 
   call st.stringtie {

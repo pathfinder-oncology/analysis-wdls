@@ -9,12 +9,13 @@ task trimFastq {
     Int min_readlength
     File reads1
     File reads2
+    Int preemptible_tries = 1
   }
 
   Int cores = 4
   Int space_needed_gb = 10 + ceil(size(adapters, "GB") + 10*size([reads1, reads2], "GB"))
   runtime {
-    preemptible: 0
+    preemptible: preemptible_tries
     maxRetries: 2
     memory: "16GB"
     bootDiskSizeGb: 25
@@ -49,6 +50,7 @@ workflow wf {
     Int min_readlength
     File reads1
     File reads2
+    Int preemptible_tries = 1
   }
   call trimFastq {
     input:
@@ -58,6 +60,7 @@ workflow wf {
     max_uncalled=max_uncalled,
     min_readlength=min_readlength,
     reads1=reads1,
-    reads2=reads2
+    reads2=reads2,
+    preemptible_tries=preemptible_tries
   }
 }
