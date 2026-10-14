@@ -8,6 +8,7 @@ task fastqc {
 
   Int space_needed_gb = 10 + round(size(files, "GB"))
   runtime {
+    preemptible: 0
     memory: "32GB"
     docker: "mgibio/fastqc:0.11.9"
     disks: "local-disk ~{space_needed_gb} SSD"

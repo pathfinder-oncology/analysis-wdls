@@ -9,6 +9,7 @@ task unalignedSeqFdaStats {
 
   Int space_needed_gb = 15 + ceil(size(files, "GB"))
   runtime {
+    preemptible: 0
     memory: "8GB"
     docker: "mgibio/samtools-cwl:1.16.1"
     disks: "local-disk ~{space_needed_gb} SSD"
