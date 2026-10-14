@@ -12,7 +12,7 @@ task sortVcf {
     maxRetries: 2
     memory: "18GB"
     docker: "broadinstitute/picard:2.23.6"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "sorted.vcf"

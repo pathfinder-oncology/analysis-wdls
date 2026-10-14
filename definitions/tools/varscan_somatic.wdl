@@ -29,7 +29,7 @@ task varscanSomatic {
     memory: "12GB"
     cpu: 2
     docker: "mgibio/varscan-cwl:v2.4.2-samtools1.16.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

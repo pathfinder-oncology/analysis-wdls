@@ -14,7 +14,7 @@ task intersectKnownVariants {
     maxRetries: 2
     memory: "8GB"
     docker: "mgibio/bcftools-cwl:1.12"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "pass_filtered_validated_variants.vcf.gz"

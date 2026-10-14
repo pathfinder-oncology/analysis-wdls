@@ -12,7 +12,7 @@ task splitIntervalListToBed {
     maxRetries: 2
     memory: "6GB"
     docker: "mgibio/cle:v1.4.2"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

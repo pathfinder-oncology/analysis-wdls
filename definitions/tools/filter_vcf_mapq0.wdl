@@ -17,7 +17,7 @@ task filterVcfMapq0 {
     docker: "mgibio/mapq0-filter:v0.5.4"
     memory: "8GB"
     bootDiskSizeGb: 10
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "mapq_filtered.vcf.gz"

@@ -10,7 +10,7 @@ task md5sum {
   runtime {
     memory: "4GB"
     docker: "ubuntu:bionic"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

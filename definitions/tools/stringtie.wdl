@@ -16,7 +16,7 @@ task stringtie {
     memory: "16GB"
     cpu: cores
     docker: "quay.io/biocontainers/stringtie:2.1.4--h7e0af3c_0"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String transcripts = "stringtie_transcripts.gtf"

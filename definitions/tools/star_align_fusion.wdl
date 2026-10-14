@@ -42,7 +42,7 @@ task starAlignFusion {
     cpu: cores
     memory: "64GB"
     docker: "trinityctat/starfusion:1.10.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String genome_dir = basename(star_genome_dir_zip, ".zip")

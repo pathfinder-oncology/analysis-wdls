@@ -198,7 +198,7 @@ task GatherBqsrReports {
     preemptible: preemptible_tries
     docker: "broadinstitute/gatk:4.1.8.1"
     memory: "4 GiB"
-    disks: "local-disk 10 HDD"
+    disks: "local-disk 10 SSD"
   }
   output {
     File bqsr_table = "bqsr_report.txt"
@@ -260,7 +260,7 @@ task GatherBamFiles {
     preemptible: preemptible_tries
     docker: "broadinstitute/gatk:4.1.8.1"
     memory: "3 GiB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
   command {
      /gatk/gatk --java-options "-Xmx2G" GatherBamFiles \

@@ -20,7 +20,7 @@ task smoove {
     cpu: cores
     bootDiskSizeGb: 10
     docker: "brentp/smoove:v0.2.7"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

@@ -16,7 +16,7 @@ task collectAlignmentSummaryMetrics {
     maxRetries: 2
     memory: "48GB"
     docker: "broadinstitute/picard:2.23.6"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
   String bamroot = basename(bam, ".bam")
   String summary_metrics = "~{bamroot}.AlignmentSummaryMetrics.txt"

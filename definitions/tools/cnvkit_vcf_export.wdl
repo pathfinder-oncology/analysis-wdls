@@ -15,7 +15,7 @@ task cnvkitVcfExport {
     maxRetries: 2
     memory: "8GB"
     docker: "mgibio/cnvkit:0.9.9"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

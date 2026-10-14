@@ -14,7 +14,7 @@ task filterSvVcfBlocklistBedpe {
     maxRetries: 2
     memory: "8GB"
     docker: "mgibio/basespace_chromoseq:v12"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

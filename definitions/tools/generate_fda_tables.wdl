@@ -35,7 +35,7 @@ task generateFdaTables {
   runtime {
     memory: "8GB"
     docker: "python:3.10.8-slim-buster"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

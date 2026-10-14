@@ -14,7 +14,7 @@ task annotsv {
     maxRetries: 2
     memory: "8GB"
     docker: "mgibio/annotsv-cwl:2.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

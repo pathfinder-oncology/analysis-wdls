@@ -11,7 +11,7 @@ task addStrelkaGt {
     maxRetries: 2
     docker: "ubuntu:bionic"
     memory: "4GB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "add_gt.vcf"

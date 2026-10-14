@@ -34,7 +34,7 @@ task starFusionDetect {
     memory: "64GB"
     cpu: cores
     docker: "mgibio/starfusion:pre-1.11.c-fefaf71"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
     # https://github.com/STAR-Fusion/STAR-Fusion/issues/175#issuecomment-567913451

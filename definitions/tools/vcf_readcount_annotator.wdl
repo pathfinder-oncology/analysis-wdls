@@ -15,7 +15,7 @@ task vcfReadcountAnnotator {
     maxRetries: 2
     docker: "griffithlab/vatools:5.2.0"
     memory: "4GB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "annotated.bam_readcount.vcf.gz"

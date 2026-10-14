@@ -43,7 +43,7 @@ task pvacfuse {
     docker: "griffithlab/pvactools:6.0.5"
     memory: "32GB"
     cpu: n_threads
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
     bootDiskSizeGb: 50
   }
 

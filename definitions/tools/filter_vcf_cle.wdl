@@ -12,7 +12,7 @@ task filterVcfCle {
     maxRetries: 2
     docker: "mgibio/samtools-cwl:1.16.1"
     memory: "4GB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String do_filtering = if filter then "filter" else "0"

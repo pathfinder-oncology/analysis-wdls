@@ -11,7 +11,7 @@ task singleSampleDocmFilter {
     maxRetries: 2
     memory: "4GB"
     docker: "mgibio/perl_helper-cwl:1.0.0"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

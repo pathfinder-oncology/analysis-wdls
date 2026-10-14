@@ -15,7 +15,7 @@ task annotsvFilter {
     maxRetries: 2
     memory: "4GB"
     docker: "python:3"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

@@ -11,7 +11,7 @@ task unalignedSeqFdaStats {
   runtime {
     memory: "8GB"
     docker: "mgibio/samtools-cwl:1.16.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String output_file = output_name + "_unaligned_metrics" + suffix + ".txt"

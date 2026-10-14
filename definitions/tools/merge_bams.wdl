@@ -15,7 +15,7 @@ task mergeBams {
     docker: "mgibio/bam-merge:0.1"
     memory: "8GB"
     cpu: cores
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outname = name + ".bam"

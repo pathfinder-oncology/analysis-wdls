@@ -11,7 +11,7 @@ task catAll {
     maxRetries: 2
     memory: "4GB"
     docker: "ubuntu:xenial"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

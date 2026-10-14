@@ -14,7 +14,7 @@ task filterVcfDocm {
     maxRetries: 2
     docker: "mgibio/samtools-cwl:1.16.1"
     memory: "4GB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String output_vcf_file = "docm_filtered_variants.vcf"
