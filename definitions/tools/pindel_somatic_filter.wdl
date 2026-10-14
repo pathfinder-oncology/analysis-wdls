@@ -14,7 +14,7 @@ task pindelSomaticFilter {
     maxRetries: 2
     memory: "16GB"
     docker: "mgibio/cle:v1.3.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

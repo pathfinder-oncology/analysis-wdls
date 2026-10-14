@@ -12,7 +12,7 @@ task varscanProcessSomatic {
     maxRetries: 2
     memory: "4GB"
     docker: "mgibio/varscan-cwl:v2.4.2-samtools1.16.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String variantsBase = basename(variants, ".vcf")

@@ -27,7 +27,7 @@ task mantaSomatic {
     cpu: cores
     memory: "24GB"
     bootDiskSizeGb: 10
-    disks: "local-disk ~{size_needed_gb} HDD"
+    disks: "local-disk ~{size_needed_gb} SSD"
   }
 
   command <<<

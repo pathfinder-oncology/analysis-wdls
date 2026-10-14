@@ -23,7 +23,7 @@ task varscanGermline {
     memory: "12GB"
     cpu: 2
     docker: "mgibio/varscan_helper-cwl:1.0.0"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "output.vcf"

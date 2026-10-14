@@ -13,7 +13,7 @@ task transcriptToGene {
     memory: "2GB"
     cpu: 1
     docker: "mgibio/rnaseq:1.0.0"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

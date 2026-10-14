@@ -16,7 +16,7 @@ task collectInsertSizeMetrics {
     maxRetries: 2
     docker: "broadinstitute/picard:2.23.6"
     memory: "48GB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String bamroot = basename(bam, ".bam")

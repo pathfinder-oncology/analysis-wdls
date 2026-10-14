@@ -30,7 +30,7 @@ task selectVariants {
     docker: "broadinstitute/gatk:4.1.8.1"
     memory: "6GB"
     bootDiskSizeGb: 25
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile = "~{output_vcf_basename}.vcf.gz"

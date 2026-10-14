@@ -34,7 +34,7 @@ task sequenceAlignAndTag {
     memory: "~{instance_memory_gb}GB"
     cpu: cores
     bootDiskSizeGb: space_needed_gb
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outname = "refAligned.bam"

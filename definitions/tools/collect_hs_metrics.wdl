@@ -25,7 +25,7 @@ task collectHsMetrics {
     maxRetries: 2
     memory: "60GB"
     docker: "broadinstitute/picard:2.23.6"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String bamroot = basename(bam, ".bam")

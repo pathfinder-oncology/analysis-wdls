@@ -11,7 +11,7 @@ task pvacseqAggregatedReportToPreferredTranscriptsList {
     maxRetries: 2
     docker: "python:3.11"
     memory: "16GB"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String out_file = "preferred_transcripts.tsv"

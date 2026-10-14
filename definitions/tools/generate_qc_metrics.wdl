@@ -15,7 +15,7 @@ task generateQcMetrics {
     memory: "18GB"
     docker: "mgibio/rnaseq:1.0.0"
     cpu: 1
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   # the mismatch between first and second here is intentional (and the nomenclature clash is stupid)

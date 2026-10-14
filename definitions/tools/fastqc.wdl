@@ -10,7 +10,7 @@ task fastqc {
   runtime {
     memory: "32GB"
     docker: "mgibio/fastqc:0.11.9"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

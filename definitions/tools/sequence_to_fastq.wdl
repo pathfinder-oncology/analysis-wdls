@@ -18,7 +18,7 @@ task sequenceToFastq {
     memory: "16GB"
     bootDiskSizeGb: 25
     docker: "broadinstitute/picard:2.23.6"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outdir = "outdir"

@@ -19,7 +19,7 @@ task leftAlignIndels {
     docker: "broadinstitute/gatk:4.6.1.0"
     memory: "8GB"
     bootDiskSizeGb: 25
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outfile_bam = "~{output_bam_basename}.bam"

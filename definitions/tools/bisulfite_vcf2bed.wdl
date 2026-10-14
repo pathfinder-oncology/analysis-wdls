@@ -15,7 +15,7 @@ task bisulfiteVcf2bed {
     docker: "mgibio/biscuit:0.3.8"
     memory: "16GB"
     cpu: 2
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
     bootDiskSizeGb: space_needed_gb
   }
 

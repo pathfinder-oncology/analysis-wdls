@@ -28,7 +28,7 @@ task gatkHaplotypeCaller {
     maxRetries: 2
     memory: "18GB"
     docker: "broadinstitute/gatk:4.1.8.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   Array[String] pref_bands = prefix("-GQB ", gvcf_gq_bands)

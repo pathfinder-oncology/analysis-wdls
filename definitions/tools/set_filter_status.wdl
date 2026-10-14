@@ -17,7 +17,7 @@ task setFilterStatus {
   runtime {
     preemptible: 1
     maxRetries: 2
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
     memory: "6GB"
     bootDiskSizeGb: 25
     docker: "mgibio/gatk-cwl:3.6.0"

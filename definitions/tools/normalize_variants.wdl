@@ -16,7 +16,7 @@ task normalizeVariants {
     maxRetries: 2
     memory: "9GB"
     docker: "broadinstitute/gatk:4.1.8.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   command <<<

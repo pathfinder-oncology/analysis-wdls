@@ -22,7 +22,7 @@ task collectWgsMetrics {
     maxRetries: 2
     memory: "48GB"
     docker: "broadinstitute/picard:2.23.6"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outname = sample_name + ".WgsMetrics.txt"
