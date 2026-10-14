@@ -32,6 +32,7 @@ workflow sequenceToTrimmedFastq {
     adapter_min_overlap=adapter_min_overlap,
     max_uncalled=max_uncalled,
     min_readlength=min_readlength,
+    preemptible_tries=0
   }
 
   output {
