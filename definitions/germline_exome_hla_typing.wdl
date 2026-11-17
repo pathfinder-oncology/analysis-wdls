@@ -44,6 +44,7 @@ workflow germlineExomeHlaTyping {
     String? optitype_name
     Float germline_filter_gnomAD_maximum_population_allele_frequency
     String? coding_filter
+    File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
   }
 
   call ge.germlineExome {
@@ -58,6 +59,7 @@ workflow germlineExomeHlaTyping {
     reference_pac=reference_pac,
     reference_0123=reference_0123,
     sequence=sequence,
+    restrict_to_bed=restrict_to_bed,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     bait_intervals=bait_intervals,

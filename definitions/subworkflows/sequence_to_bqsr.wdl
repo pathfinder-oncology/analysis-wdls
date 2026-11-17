@@ -2,6 +2,7 @@ version 1.0
 
 import "../types.wdl"  # !UnusedImport
 import "../tools/sequence_align_and_tag.wdl" as saat
+import "../tools/restrict_to_regions.wdl" as rtr
 import "../tools/merge_bams.wdl" as mb
 import "../tools/mark_duplicates_and_sort.wdl" as mdas
 import "../tools/index_bam.wdl" as ib
@@ -27,6 +28,10 @@ workflow sequenceToBqsr {
     File reference_0123
 
     String final_name = "final"
+
+    # WGS mode: keep only read templates with an alignment (primary or supplementary) in these
+    # regions (see tools/restrict_to_regions.wdl). Unset = no filtering.
+    File? restrict_to_bed
   }
 
   scatter(seq_data in unaligned) {
@@ -42,11 +47,20 @@ workflow sequenceToBqsr {
       reference_pac=reference_pac,
       reference_0123=reference_0123
     }
+
+    if (defined(restrict_to_bed)) {
+      call rtr.restrictToRegions {
+        input:
+        bam=sequenceAlignAndTag.aligned_bam,
+        regions_bed=select_first([restrict_to_bed])
+      }
+    }
+    File aligned_bam = select_first([restrictToRegions.restricted_bam, sequenceAlignAndTag.aligned_bam])
   }
 
   call mb.mergeBams {
     input:
-    bams=sequenceAlignAndTag.aligned_bam,
+    bams=aligned_bam,
     name=final_name
   }
 

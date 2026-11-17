@@ -17,6 +17,7 @@ workflow alignmentExome {
     File reference_0123
     Array[SequenceData] sequence
     TrimmingOptions? trimming
+    File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
     Array[File] bqsr_known_sites
     Array[File] bqsr_known_sites_tbi
     String? final_name
@@ -45,6 +46,7 @@ workflow alignmentExome {
     reference_0123=reference_0123,
     unaligned=sequence,
     trimming=trimming,
+    restrict_to_bed=restrict_to_bed,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     final_name=final_name
