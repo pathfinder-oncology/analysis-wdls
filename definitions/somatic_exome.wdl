@@ -36,6 +36,9 @@ workflow somaticExome {
     TrimmingOptions? trimming
     File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
     String cnvkit_method = "hybrid"  # enum [hybrid, amplicon, wgs]
+    # Also output the normal BAM (immuno wgs_mode reuses it for germline
+    # calling). Off by default so standalone runs do not publish it.
+    Boolean output_normal_bam = false
 
     Array[File] bqsr_known_sites
     Array[File] bqsr_known_sites_tbi
@@ -295,14 +298,19 @@ workflow somaticExome {
     input: cram=normalBamToCram.cram
   }
 
+  if (output_normal_bam) {
+    File normal_final_bam = normalAlignment.final_bam
+    File normal_final_bam_bai = normalAlignment.final_bam_bai
+  }
+
   output {
     File tumor_cram = tumorIndexCram.indexed_cram
     File tumor_cram_crai = tumorIndexCram.indexed_cram_crai
     File tumor_mark_duplicates_metrics = tumorAlignment.mark_duplicates_metrics_file
     QCMetrics tumor_qc_metrics = tumorQc.metrics
 
-    File normal_bam = normalAlignment.final_bam
-    File normal_bam_bai = normalAlignment.final_bam_bai
+    File? normal_bam = normal_final_bam
+    File? normal_bam_bai = normal_final_bam_bai
     File normal_cram = normalIndexCram.indexed_cram
     File normal_cram_crai = normalIndexCram.indexed_cram_crai
     File normal_mark_duplicates_metrics = normalAlignment.mark_duplicates_metrics_file
