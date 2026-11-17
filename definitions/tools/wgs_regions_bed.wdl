@@ -22,7 +22,7 @@ task wgsRegionsBed {
     maxRetries: 2
     memory: "4GB"
     docker: "mgibio/samtools-cwl:1.16.1"
-    disks: "local-disk 10 HDD"
+    disks: "local-disk 10 SSD"
   }
 
   command <<<

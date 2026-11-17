@@ -26,7 +26,7 @@ task restrictToRegions {
     memory: "16GB"
     cpu: cores
     docker: "mgibio/samtools-cwl:1.16.1"
-    disks: "local-disk ~{space_needed_gb} HDD"
+    disks: "local-disk ~{space_needed_gb} SSD"
   }
 
   String outname = "restricted.bam"
