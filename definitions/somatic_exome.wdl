@@ -35,6 +35,7 @@ workflow somaticExome {
     Array[SequenceData] normal_sequence
     TrimmingOptions? trimming
     File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
+    String cnvkit_method = "hybrid"  # enum [hybrid, amplicon, wgs]
 
     Array[File] bqsr_known_sites
     Array[File] bqsr_known_sites_tbi
@@ -251,6 +252,7 @@ workflow somaticExome {
     normal_bam_bai=normalAlignment.final_bam_bai,
     reference_fasta=reference,
     bait_intervals=bait_intervals,
+    method=cnvkit_method,
     target_average_size=cnvkit_target_average_size
   }
 
@@ -299,6 +301,8 @@ workflow somaticExome {
     File tumor_mark_duplicates_metrics = tumorAlignment.mark_duplicates_metrics_file
     QCMetrics tumor_qc_metrics = tumorQc.metrics
 
+    File normal_bam = normalAlignment.final_bam
+    File normal_bam_bai = normalAlignment.final_bam_bai
     File normal_cram = normalIndexCram.indexed_cram
     File normal_cram_crai = normalIndexCram.indexed_cram_crai
     File normal_mark_duplicates_metrics = normalAlignment.mark_duplicates_metrics_file

@@ -45,6 +45,10 @@ workflow germlineExomeHlaTyping {
     Float germline_filter_gnomAD_maximum_population_allele_frequency
     String? coding_filter
     File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
+    File? aligned_bam  # see germline_exome.wdl
+    File? aligned_bam_bai
+    File? aligned_mark_duplicates_metrics
+    QCMetrics? aligned_qc_metrics
   }
 
   call ge.germlineExome {
@@ -60,6 +64,10 @@ workflow germlineExomeHlaTyping {
     reference_0123=reference_0123,
     sequence=sequence,
     restrict_to_bed=restrict_to_bed,
+    aligned_bam=aligned_bam,
+    aligned_bam_bai=aligned_bam_bai,
+    aligned_mark_duplicates_metrics=aligned_mark_duplicates_metrics,
+    aligned_qc_metrics=aligned_qc_metrics,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     bait_intervals=bait_intervals,

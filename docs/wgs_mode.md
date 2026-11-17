@@ -38,10 +38,24 @@ Set `immuno.wgs_mode: true`. The workflow then:
    index, and it preserves the input order;
 3. continues unchanged: merge, duplicate marking, BQSR, calling, HLA typing.
 
-The step applies to the tumor and normal alignments in `somaticExome` and to
-the normal alignment in `germlineExome`. FASTQ and BAM inputs are handled
-the same way. Alignment still runs on the full genome; every step after it
-sees exome-sized data.
+The step applies to the tumor and normal alignments in `somaticExome`. FASTQ
+and BAM inputs are handled the same way. Alignment still runs on the full
+genome; every step after it sees exome-sized data.
+
+`wgs_mode` also changes two calls:
+
+- **`germlineExome` reuses the normal alignment from `somaticExome`.** Outside
+  `wgs_mode`, `immuno` aligns the normal twice, through the same
+  `sequenceToBqsr` and `qcExome` calls with identical inputs. In `wgs_mode`,
+  `germlineExome` takes `somaticExome`'s normal BAM, duplicate metrics and QC
+  metrics (inputs `aligned_bam`, `aligned_bam_bai`,
+  `aligned_mark_duplicates_metrics`, `aligned_qc_metrics`) and skips its own
+  alignment.
+- **CNVkit runs with `--method amplicon` (targets only).** In the default
+  `hybrid` mode, which is CNVkit's mode for exome capture, coverage is also
+  binned in off-target "antitarget" regions. The filter removes the reads that
+  would fall there, so `wgs_mode` sets `somaticExome.cnvkit_method` to
+  `amplicon`, which bins target regions only.
 
 ### Regions that must be kept
 
@@ -62,9 +76,9 @@ sees exome-sized data.
 - The unaligned FDA metrics still describe the complete input FASTQs/BAMs. The
   aligned metrics describe the filtered alignments.
 - Coverage around the targets is flat, without the bait-shaped falloff of a
-  capture library. CNVkit's antitarget bins farther than the padding from a
-  bait receive no reads, so CNVkit output in `wgs_mode` has not been
-  validated and should not be trusted until it is.
+  capture library.
+- CNVkit uses target bins only (see above). Its copy-number calls have not
+  yet been compared against a hybrid-mode exome run of the same patient.
 - A template whose only in-region record is a secondary alignment is dropped.
   `wgs_mode` keeps templates with a supplementary alignment in the regions.
   The prefilter script (option 2) leaves them out: it fetches primary records
@@ -76,9 +90,8 @@ sees exome-sized data.
 
 ### Costs that remain
 
-- Alignment runs on the full genome. `immuno` aligns the normal twice, once
-  in `somaticExome` and once in `germlineExome` (unchanged upstream
-  behavior), so in `wgs_mode` the normal costs two full-genome alignments.
+- Alignment runs on the full genome, once for the tumor and once for the
+  normal.
 - `restrictToRegions` localizes each lane's full aligned BAM and reads it
   three times: the `-L` name pass, the `-f 4` name pass, and the `-N` pass.
 
