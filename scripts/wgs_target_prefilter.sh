@@ -110,7 +110,9 @@ log() { echo "[$(date '+%H:%M:%S')] $*" >&2; }
 for f in "${INTERVAL_FILES[@]}"; do [[ -r "$f" ]] || die "cannot read interval file $f"; done
 
 # -P (--fetch-pairs) is absent from samtools 1.16.1; tested on 1.21.
-"$SAMTOOLS" view --help 2>&1 | grep -q -- '--fetch-pairs' \
+# Capture first: `cmd | grep -q` under pipefail fails on a match via SIGPIPE.
+view_help=$("$SAMTOOLS" view --help 2>&1 || true)
+[[ "$view_help" == *--fetch-pairs* ]] \
   || die "$SAMTOOLS lacks 'view --fetch-pairs' (tested on samtools 1.21)"
 
 if [[ "$INPUT" == *.cram ]]; then
