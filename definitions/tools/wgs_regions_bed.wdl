@@ -30,25 +30,32 @@ task wgsRegionsBed {
 
     : > raw.bed
     for f in ~{sep=" " interval_lists}; do
+      before=$(wc -l < raw.bed)
       if grep -q -m1 '^@SQ' "$f"; then
         awk -F'\t' '!/^@/ && NF>=3 {print $1"\t"($2-1)"\t"$3}' "$f" >> raw.bed
       else
         awk -F'\t' '!/^(#|track|browser)/ && NF>=3 {print $1"\t"$2"\t"$3}' "$f" >> raw.bed
       fi
+      # A gzipped or space-delimited file parses to nothing; fail, not skip.
+      [[ $(wc -l < raw.bed) -gt $before ]] || { echo "no tab-delimited intervals in $f" >&2; exit 1; }
     done
 
     HLA_REGION="~{hla_region}"
+    [[ "$HLA_REGION" =~ ^[^:]+:[0-9]+-[0-9]+$ ]] || { echo "hla_region must be CHROM:START-END" >&2; exit 1; }
     hla_chrom=${HLA_REGION%%:*}
     hla_range=${HLA_REGION#*:}
     printf '%s\t%s\t%s\n' "$hla_chrom" "$(( ${hla_range%-*} - 1 ))" "${hla_range#*-}" >> raw.bed
 
+    : > missing.txt
     awk -F'\t' -v OFS='\t' -v pad=~{padding} -v re='~{hla_contig_regex}' '
       FNR==NR { len[$1]=$2; ord[$1]=FNR; if ($1 ~ re) print FNR, $1, 0, $2; next }
-      ($1 in len) {
+      {
+        if (!($1 in len)) { missing[$1]++; next }
         s = $2 - pad; if (s < 0) s = 0
         e = $3 + pad; if (e > len[$1]) e = len[$1]
         if (e > s) print ord[$1], $1, s, e
       }
+      END { for (c in missing) print c"\t"missing[c] > "missing.txt" }
     ' contigs.tsv raw.bed \
       | sort -k1,1n -k3,3n \
       | awk -F'\t' -v OFS='\t' '
@@ -57,6 +64,13 @@ task wgsRegionsBed {
           END { if (c!="") print c, s, e }
         ' > regions.bed
 
+    # A contig-name mismatch ("1" vs "chr1") would drop the whole exome while
+    # the MHC/HLA lines keep regions.bed non-empty, so fail instead.
+    if [[ -s missing.txt ]]; then
+      echo "intervals on contigs absent from reference_dict (contig, count):" >&2
+      sort missing.txt >&2
+      exit 1
+    fi
     [[ -s regions.bed ]] || { echo "no regions produced" >&2; exit 1; }
   >>>
 

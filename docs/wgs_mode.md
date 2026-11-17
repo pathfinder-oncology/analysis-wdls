@@ -1,6 +1,6 @@
-# Running `immuno` on whole-genome DNA
+# Whole-genome DNA in `immuno`
 
-`immuno` is designed for exome DNA. Its variant callers, CNVkit and QC are
+`immuno` is designed for exome DNA. Its variant callers, CNVkit, and QC are
 restricted to `bait_intervals` / `target_intervals`. On whole-genome input,
 however, every whole-BAM step (merge, duplicate marking, BQSR, CRAM
 conversion, HLA extraction and metrics) processes the full genome, which is
@@ -31,7 +31,7 @@ Set `immuno.wgs_mode: true`. The workflow then:
    `wgs_region_padding` (default 250 bp), plus the MHC
    (chr6:29836259-33148325) and every HLA / chr6 alt contig in the reference;
 2. aligns each read group as usual, then keeps every template that has a
-   primary or supplementary alignment in those regions, plus fully unmapped pairs
+   primary or supplementary alignment in those regions, plus every unmapped read and its mate
    (`tools/restrict_to_regions.wdl`). The aligner output is grouped by read
    name, so the step reads it twice by streaming: once to collect read names
    with `-L`, then once to keep those names with `-N`. It needs no sort or
@@ -66,6 +66,10 @@ sees exome-sized data.
   The prefilter script (option 2) does not: their primary record lies outside
   the regions, `--fetch-pairs` returns the mate but not the primary, and the
   script reports the leftover read as a singleton.
+- `wgs_mode` keeps every unmapped read and its mate. The script keeps unplaced
+  unmapped pairs (the index's `*` bin) only: an unmapped read whose mate maps
+  outside the regions is placed at that mate's position, and reaching it would
+  mean reading the whole file.
 
 ## Option 2: `scripts/wgs_target_prefilter.sh` before the workflow
 
@@ -83,9 +87,18 @@ scripts/wgs_target_prefilter.sh \
 For each read group the script writes complete R1/R2 FASTQs, plus
 `out/tumor.sequences.yaml`, which holds ready-to-paste `tumor_sequence`
 entries with the original `@RG` lines. It uses `samtools view
---fetch-pairs`, so it needs a coordinate-sorted, indexed input and a samtools
-newer than 1.16.1 (tested on 1.21). It exits non-zero if R1 and R2 disagree,
-a record appears twice, or singletons exceed `--max-singleton-fraction`.
+--fetch-pairs`, so it needs a coordinate-sorted, indexed input (tested on
+samtools 1.16.1, the workflow's `mgibio/samtools-cwl:1.16.1` image, and 1.21).
+It exits non-zero if:
+
+- an interval file yields no tab-delimited intervals, or names a contig
+  missing from the input header;
+- `--hla-region` is not `CHROM:START-END`;
+- R1 and R2 disagree, or a record appears twice;
+- any record carries a read group not listed in the header;
+- singletons exceed `--max-singleton-fraction`.
+
+`wgsRegionsBed` applies the same interval and `hla_region` checks.
 Because mate fetching makes random reads, run it against a local copy of the
 BAM. Run against `gs://` URLs, it was impractically slow.
 
@@ -100,13 +113,19 @@ With the xGen bait and target lists:
 
 | Check | Result |
 |---|---|
-| Templates kept (script and `restrictToRegions`) | 127,810, identical sets |
+| Templates kept by the script | 127,810 |
+| Templates kept by `restrictToRegions` | 127,815: the script's 127,810 plus 5 unmapped reads whose mates map outside the regions |
+| Unmapped reads (`-f 4`) kept by `restrictToRegions` | 40,007 of 40,007 |
 | Templates with a primary record in the regions that were missing | 0 |
-| Kept templates explained by neither the regions nor the unmapped bin | 0 |
-| Incomplete pairs in the output | 0 |
+| Script templates explained by neither the regions nor the unplaced bin | 0 |
+| Incomplete pairs in either output | 0 |
 | R1/R2 read names, line by line (script) | identical |
 | Read-name grouping and order (`restrictToRegions`) | preserved |
 | Picard `SamToFastq` (strict) on the `restrictToRegions` output | succeeds |
 | Picard `SamToFastq` on the naive `samtools view -L` output | fails, 7,474 unpaired mates |
+| Contig-name mismatch, space-delimited BED, malformed HLA region | each fails with a message (script and `wgsRegionsBed`) |
+
+The test data holds no secondary alignments and no template whose only
+in-region record is supplementary, so those two paths are not exercised.
 
 The padded region set covers 185 Mb, 5.75% of the reference.
