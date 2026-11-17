@@ -155,8 +155,10 @@ workflow immuno {
     File target_intervals
     # WGS mode: tumor/normal DNA is whole-genome. After alignment, keep only
     # read templates with a primary or supplementary alignment within wgs_region_padding of the
-    # bait or target intervals, in the MHC, on HLA/chr6 alt contigs, or fully
-    # unmapped; everything downstream then sees exome-sized BAMs.
+    # bait or target intervals, in the MHC or on HLA/chr6 alt contigs, plus
+    # every unmapped read and its mate; everything downstream then sees
+    # exome-sized BAMs. Germline calling reuses somaticExome's normal, and
+    # CNVkit runs targets-only (amplicon). See docs/wgs_mode.md.
     Boolean wgs_mode = false
     Int wgs_region_padding = 250
     Int target_interval_padding = 100
@@ -382,6 +384,7 @@ workflow immuno {
     restrict_to_bed=wgsRegionsBed.regions_bed,
     # Filtered WGS has no reads in CNVkit's hybrid-mode antitarget bins.
     cnvkit_method=if wgs_mode then "amplicon" else "hybrid",
+    output_normal_bam=wgs_mode,
     tumor_name=tumor_name,
     normal_sequence=normal_sequence,
     normal_name=normal_name,
@@ -443,8 +446,8 @@ workflow immuno {
   # somaticExome (same sequenceToBqsr and qcExome inputs) instead of
   # aligning the whole genome a second time.
   if (wgs_mode) {
-    File wgs_normal_bam = somaticExome.normal_bam
-    File wgs_normal_bam_bai = somaticExome.normal_bam_bai
+    File wgs_normal_bam = select_first([somaticExome.normal_bam])
+    File wgs_normal_bam_bai = select_first([somaticExome.normal_bam_bai])
     File wgs_normal_mark_duplicates_metrics = somaticExome.normal_mark_duplicates_metrics
     QCMetrics wgs_normal_qc_metrics = somaticExome.normal_qc_metrics
   }
@@ -461,7 +464,6 @@ workflow immuno {
     reference_pac=reference_pac,
     reference_0123=reference_0123,
     sequence=normal_sequence,
-    restrict_to_bed=wgsRegionsBed.regions_bed,
     aligned_bam=wgs_normal_bam,
     aligned_bam_bai=wgs_normal_bam_bai,
     aligned_mark_duplicates_metrics=wgs_normal_mark_duplicates_metrics,

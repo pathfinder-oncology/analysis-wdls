@@ -17,6 +17,8 @@ task wgsRegionsBed {
     String hla_contig_regex = "HLA|HSCHR6_MHC|^chr6_.*_alt$"
   }
 
+  File hla_contig_regex_file = write_lines([hla_contig_regex])
+
   runtime {
     preemptible: 1
     maxRetries: 2
@@ -53,8 +55,9 @@ task wgsRegionsBed {
     printf '%s\t%s\t%s\n' "$hla_chrom" "$(( ${hla_range%-*} - 1 ))" "${hla_range#*-}" >> raw.bed
 
     : > missing.txt
-    # The regex goes through the environment: awk -v rewrites backslash escapes.
-    HLA_CONTIG_REGEX='~{hla_contig_regex}' awk -F'\t' -v OFS='\t' -v pad=~{padding} '
+    # The regex reaches awk through a file and the environment: awk -v would
+    # rewrite backslash escapes, and a quote in it would break this command.
+    HLA_CONTIG_REGEX="$(head -n 1 "~{hla_contig_regex_file}")" awk -F'\t' -v OFS='\t' -v pad=~{padding} '
       BEGIN { re = ENVIRON["HLA_CONTIG_REGEX"] }
       FNR==NR { len[$1]=$2; ord[$1]=FNR; if ($1 ~ re) print FNR, $1, 0, $2; next }
       {
