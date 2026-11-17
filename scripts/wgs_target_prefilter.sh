@@ -10,7 +10,7 @@
 # script avoids that by:
 #
 #   1. fetching every primary record that overlaps the regions, plus its mate
-#      wherever the mate maps (`samtools view -P`, absent from samtools 1.16.1, present in 1.21);
+#      wherever the mate maps (`samtools view -P`, tested on samtools 1.16.1 and 1.21);
 #   2. grouping records by read name (`samtools collate`);
 #   3. writing R1/R2 FASTQs per read group (`samtools fastq`), which routes any
 #      record without its mate to a separate singleton file. Singletons are
@@ -23,13 +23,14 @@
 #     HLA typers (OptiType, HLA-HD, PHLAT) extract chr6:29836259-33148325, the
 #     HLA alt contigs and all unmapped reads from the CRAM, so these must
 #     survive the filter.
-#   - unplaced unmapped pairs (the BAM's `*` bin), for the same reason.
+#   - unplaced unmapped pairs (the BAM's `*` bin), for the same reason. An unmapped read
+#     whose mate maps outside the regions is not kept (see docs/wgs_mode.md).
 #     Disable with --no-unplaced.
 #
 # The immuno WDL realigns the FASTQs to its own reference, so the input BAM may
 # come from any GRCh38 alignment whose contig names match the interval files.
 #
-# Requires: samtools with `view --fetch-pairs` (tested on 1.21) on PATH (or set SAMTOOLS), awk, sort.
+# Requires: samtools with `view --fetch-pairs` (tested on 1.16.1 and 1.21) on PATH (or set SAMTOOLS), awk, sort.
 # gs:// inputs work if samtools is built with GCS support and GCS_OAUTH_TOKEN
 # is set, e.g. `export GCS_OAUTH_TOKEN=$(gcloud auth print-access-token)`.
 
@@ -109,11 +110,11 @@ log() { echo "[$(date '+%H:%M:%S')] $*" >&2; }
 [[ "$PADDING" =~ ^[0-9]+$ ]] || die "-p must be a non-negative integer"
 for f in "${INTERVAL_FILES[@]}"; do [[ -r "$f" ]] || die "cannot read interval file $f"; done
 
-# -P (--fetch-pairs) is absent from samtools 1.16.1; tested on 1.21.
+# -P (--fetch-pairs) is present in samtools 1.16.1 and 1.21 (both tested).
 # Capture first: `cmd | grep -q` under pipefail fails on a match via SIGPIPE.
 view_help=$("$SAMTOOLS" view --help 2>&1 || true)
 [[ "$view_help" == *--fetch-pairs* ]] \
-  || die "$SAMTOOLS lacks 'view --fetch-pairs' (tested on samtools 1.21)"
+  || die "$SAMTOOLS lacks 'view --fetch-pairs' (tested on samtools 1.16.1 and 1.21)"
 
 if [[ "$INPUT" == *.cram ]]; then
   [[ -n "$REFERENCE" ]] || die "CRAM input needs -T reference.fa"
@@ -144,14 +145,18 @@ awk -F'\t' '$1=="@SQ"{n="";l="";for(i=2;i<=NF;i++){if($i~/^SN:/)n=substr($i,4);i
 log "Building regions (padding ${PADDING} bp)"
 : > "$WORK/raw.bed"
 for f in "${INTERVAL_FILES[@]}"; do
+  before=$(wc -l < "$WORK/raw.bed")
   if grep -q -m1 '^@SQ' "$f"; then
     # Picard interval_list: 1-based closed -> BED 0-based half-open.
     awk -F'\t' '!/^@/ && NF>=3 {print $1"\t"($2-1)"\t"$3}' "$f" >> "$WORK/raw.bed"
   else
     awk -F'\t' '!/^(#|track|browser)/ && NF>=3 {print $1"\t"$2"\t"$3}' "$f" >> "$WORK/raw.bed"
   fi
+  # A gzipped or space-delimited file parses to nothing; fail, not skip.
+  [[ $(wc -l < "$WORK/raw.bed") -gt $before ]] || die "no tab-delimited intervals in $f"
 done
 
+[[ "$HLA_REGION" =~ ^[^:]+:[0-9]+-[0-9]+$ ]] || die "--hla-region must be CHROM:START-END"
 hla_chrom=${HLA_REGION%%:*}
 hla_range=${HLA_REGION#*:}
 hla_start=${hla_range%-*}
@@ -177,9 +182,12 @@ awk -F'\t' -v OFS='\t' -v pad="$PADDING" -v re="$HLA_CONTIG_REGEX" -v dropped="$
       END { if (c!="") print c, s, e }
     ' > "$OUT_PREFIX.regions.bed"
 
+# A contig-name mismatch (e.g. "1" vs "chr1") would silently drop the whole
+# exome while the MHC/HLA regions keep the BED non-empty, so fail instead.
 if [[ -s "$WORK/dropped.txt" ]]; then
-  log "WARNING: intervals on contigs absent from the input header were skipped:"
-  sort "$WORK/dropped.txt" | head -20 >&2
+  echo "ERROR: intervals on contigs absent from the input header (contig, count):" >&2
+  sort "$WORK/dropped.txt" >&2
+  exit 1
 fi
 region_bp=$(awk '{s+=$3-$2} END{print s+0}' "$OUT_PREFIX.regions.bed")
 genome_bp=$(awk '{s+=$2} END{print s+0}' "$WORK/contigs.tsv")
@@ -204,12 +212,14 @@ log "Grouping by read name"
   | "$SAMTOOLS" collate -@ "$THREADS" -u -O - "$WORK/collate" \
   | "$SAMTOOLS" view -@ "$THREADS" -b -1 -o "$WORK/collated.bam" -
 
-# Every record is fetched once even when the regions overlap or a mate falls
-# inside another region; a duplicate record would surface as a third read with
-# the same name. Check rather than assume.
+# Every record should be fetched once even when the regions overlap or a mate
+# falls inside another region. Check rather than assume: count (name, mate)
+# keys that occur more than once. Order within a collated group is not
+# guaranteed, so compare after sorting rather than with the previous line.
 # (Flag bits 0x40/0x80 are extracted arithmetically; BSD awk has no and().)
 dup_names=$("$SAMTOOLS" view "$WORK/collated.bam" \
-  | awk -F'\t' '{r=(int($2/64)%2)+2*(int($2/128)%2); k=$1":"r} k==prev{d++} {prev=k} END{print d+0}')
+  | awk -F'\t' '{print $1":"(int($2/64)%2)+2*(int($2/128)%2)}' \
+  | sort -T "$WORK" | uniq -d | wc -l | tr -d ' ')
 [[ "$dup_names" -eq 0 ]] || die "${dup_names} records were emitted twice; refusing to write FASTQs"
 
 # ---- FASTQs per read group -------------------------------------------------
@@ -219,6 +229,7 @@ printf 'read_group\tpairs\tsingletons\tother\n' > "$OUT_PREFIX.prefilter_qc.tsv"
 : > "$OUT_PREFIX.sequences.yaml"
 total_pairs=0
 total_single=0
+total_other=0
 
 write_fastqs() {  # $1 = RG id ("" for no read groups), $2 = file tag
   local rg=$1 tag=$2 select=()
@@ -227,8 +238,7 @@ write_fastqs() {  # $1 = RG id ("" for no read groups), $2 = file tag
   # -O writes original qualities (OQ tag) when present, i.e. pre-BQSR values.
   "$SAMTOOLS" view -@ "$THREADS" -u ${select[@]+"${select[@]}"} "$WORK/collated.bam" \
     | "$SAMTOOLS" fastq -@ "$THREADS" -O -n -c 6 \
-        -1 "$r1" -2 "$r2" -0 "$WORK/$tag.other.fq.gz" -s "$WORK/$tag.single.fq.gz" - \
-        2> "$WORK/$tag.fastq.log"
+        -1 "$r1" -2 "$r2" -0 "$WORK/$tag.other.fq.gz" -s "$WORK/$tag.single.fq.gz" -
   local pairs single other
   pairs=$(( $(gzip -dc "$r1" | wc -l) / 4 ))
   local pairs2=$(( $(gzip -dc "$r2" | wc -l) / 4 ))
@@ -238,6 +248,7 @@ write_fastqs() {  # $1 = RG id ("" for no read groups), $2 = file tag
   printf '%s\t%s\t%s\t%s\n' "$tag" "$pairs" "$single" "$other" >> "$OUT_PREFIX.prefilter_qc.tsv"
   total_pairs=$((total_pairs + pairs))
   total_single=$((total_single + single))
+  total_other=$((total_other + other))
   log "  $tag: $pairs pairs, $single singletons, $other unflagged"
 }
 
@@ -248,7 +259,8 @@ yaml_entry() {  # $1 = file tag, $2 = @RG line or ""
     echo "    fastq1: \"$OUT_PREFIX.$tag.R1.fastq.gz\""
     echo "    fastq2: \"$OUT_PREFIX.$tag.R2.fastq.gz\""
     if [[ -n "$rgline" ]]; then
-      rg_escaped=$(printf '%s' "$rgline" | sed 's/\t/\\t/g; s/"/\\"/g')
+      # awk rather than sed: BSD sed does not read \t as a tab.
+      rg_escaped=$(printf '%s' "$rgline" | awk '{gsub(/"/, "\\\""); gsub(/\t/, "\\t"); print}')
       echo "  readgroup: \"$rg_escaped\""
     else
       echo "  readgroup: \"@RG\\tID:1\\tSM:REPLACE_ME\\tLB:REPLACE_ME\\tPL:Illumina\""
@@ -261,20 +273,24 @@ if [[ ${#RG_LINES[@]} -eq 0 ]]; then
   write_fastqs "" "all"
   yaml_entry "all" ""
 else
+  used_tags=" "
   for line in "${RG_LINES[@]}"; do
-    id=$(printf '%s' "$line" | tr '\t' '\n' | awk -F: '$1=="ID"{sub(/^ID:/,""); print; exit}')
+    id=$(printf '%s' "$line" | awk -F'\t' '{for(i=2;i<=NF;i++) if($i~/^ID:/){print substr($i,4); exit}}')
     tag=$(printf '%s' "$id" | tr -c 'A-Za-z0-9._-' '_')
+    [[ "$used_tags" != *" $tag "* ]] \
+      || die "read groups map to the same file tag '$tag'; rename them in the header first"
+    used_tags+="$tag "
     write_fastqs "$id" "$tag"
     yaml_entry "$tag" "$line"
   done
 fi
 
-# Reads without a read-group tag are not selected by -r; count them so they
-# cannot vanish silently.
+# Reads without a listed read-group tag are not selected by -r; fail rather
+# than drop them.
 if [[ ${#RG_LINES[@]} -gt 0 ]]; then
-  no_rg=$("$SAMTOOLS" view -c "$WORK/collated.bam" \
-    | awk -v want=$((2 * total_pairs + total_single)) '{print $1 - want}')
-  [[ "$no_rg" -le 0 ]] || log "WARNING: ${no_rg} records carry no read group listed in the header and were not written"
+  all_n=$("$SAMTOOLS" view -c "$WORK/collated.bam")
+  no_rg=$((all_n - 2 * total_pairs - total_single - total_other))
+  [[ "$no_rg" -le 0 ]] || die "${no_rg} records carry no read group listed in the header"
 fi
 
 frac=$(awk -v s="$total_single" -v p="$total_pairs" 'BEGIN{ if (p==0) print 1; else printf "%.6f", s/(2*p) }')
