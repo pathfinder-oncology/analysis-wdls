@@ -10,6 +10,9 @@ task wgsRegionsBed {
     Array[File] interval_lists  # Picard interval_list (1-based) or BED (0-based)
     File reference_dict
     Int padding = 250
+    # The calling workflows pad targets by this much; a smaller padding here
+    # would drop reads inside the calling window.
+    Int min_padding = 0
     String hla_region = "chr6:29836259-33148325"
     String hla_contig_regex = "HLA|HSCHR6_MHC|^chr6_.*_alt$"
   }
@@ -24,6 +27,9 @@ task wgsRegionsBed {
 
   command <<<
     set -euo pipefail
+
+    (( ~{padding} >= ~{min_padding} )) \
+      || { echo "padding ~{padding} is below the calling padding ~{min_padding}" >&2; exit 1; }
 
     awk -F'\t' '$1=="@SQ"{n="";l="";for(i=2;i<=NF;i++){if($i~/^SN:/)n=substr($i,4);if($i~/^LN:/)l=substr($i,4)}print n"\t"l}' \
       "~{reference_dict}" > contigs.tsv
@@ -47,7 +53,9 @@ task wgsRegionsBed {
     printf '%s\t%s\t%s\n' "$hla_chrom" "$(( ${hla_range%-*} - 1 ))" "${hla_range#*-}" >> raw.bed
 
     : > missing.txt
-    awk -F'\t' -v OFS='\t' -v pad=~{padding} -v re='~{hla_contig_regex}' '
+    # The regex goes through the environment: awk -v rewrites backslash escapes.
+    HLA_CONTIG_REGEX='~{hla_contig_regex}' awk -F'\t' -v OFS='\t' -v pad=~{padding} '
+      BEGIN { re = ENVIRON["HLA_CONTIG_REGEX"] }
       FNR==NR { len[$1]=$2; ord[$1]=FNR; if ($1 ~ re) print FNR, $1, 0, $2; next }
       {
         if (!($1 in len)) { missing[$1]++; next }
@@ -84,11 +92,13 @@ workflow wf {
     Array[File] interval_lists
     File reference_dict
     Int padding = 250
+    Int min_padding = 0
   }
   call wgsRegionsBed {
     input:
     interval_lists=interval_lists,
     reference_dict=reference_dict,
-    padding=padding
+    padding=padding,
+    min_padding=min_padding
   }
 }
