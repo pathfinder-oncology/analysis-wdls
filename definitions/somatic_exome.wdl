@@ -34,6 +34,7 @@ workflow somaticExome {
     String normal_sample_name
     Array[SequenceData] normal_sequence
     TrimmingOptions? trimming
+    File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
 
     Array[File] bqsr_known_sites
     Array[File] bqsr_known_sites_tbi
@@ -118,6 +119,7 @@ workflow somaticExome {
     reference_0123=reference_0123,
     unaligned=tumor_sequence,
     trimming=trimming,
+    restrict_to_bed=restrict_to_bed,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     final_name=tumor_name
@@ -154,6 +156,7 @@ workflow somaticExome {
     reference_0123=reference_0123,
     unaligned=normal_sequence,
     trimming=trimming,
+    restrict_to_bed=restrict_to_bed,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     final_name=normal_name

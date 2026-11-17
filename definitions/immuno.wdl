@@ -17,6 +17,7 @@ import "tools/optitype_dna.wdl" as od
 import "tools/phlat.wdl" as ph
 import "tools/hlahd_dna.wdl" as hd
 import "tools/concordance.wdl" as c
+import "tools/wgs_regions_bed.wdl" as wrb
 
 #
 # These structs are needed only because MiniWDL, used by some of our
@@ -152,6 +153,12 @@ workflow immuno {
     Array[File] bqsr_known_sites_tbi
     File bait_intervals
     File target_intervals
+    # WGS mode: tumor/normal DNA is whole-genome. After alignment, keep only
+    # read templates with a primary or supplementary alignment within wgs_region_padding of the
+    # bait or target intervals, in the MHC, on HLA/chr6 alt contigs, or fully
+    # unmapped; everything downstream then sees exome-sized BAMs.
+    Boolean wgs_mode = false
+    Int wgs_region_padding = 250
     Int target_interval_padding = 100
     Array[LabelledFile] per_base_intervals
     Array[LabelledFile] per_target_intervals
@@ -350,6 +357,15 @@ workflow immuno {
     min_ffpm_level=min_ffpm_level
   }
 
+  if (wgs_mode) {
+    call wrb.wgsRegionsBed {
+      input:
+      interval_lists=[bait_intervals, target_intervals],
+      reference_dict=reference_dict,
+      padding=wgs_region_padding
+    }
+  }
+
   call se.somaticExome {
     input:
     reference=reference,
@@ -362,6 +378,7 @@ workflow immuno {
     reference_pac=reference_pac,
     reference_0123=reference_0123,
     tumor_sequence=tumor_sequence,
+    restrict_to_bed=wgsRegionsBed.regions_bed,
     tumor_name=tumor_name,
     normal_sequence=normal_sequence,
     normal_name=normal_name,
@@ -431,6 +448,7 @@ workflow immuno {
     reference_pac=reference_pac,
     reference_0123=reference_0123,
     sequence=normal_sequence,
+    restrict_to_bed=wgsRegionsBed.regions_bed,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     bait_intervals=bait_intervals,
