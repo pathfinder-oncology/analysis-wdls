@@ -380,6 +380,8 @@ workflow immuno {
     reference_0123=reference_0123,
     tumor_sequence=tumor_sequence,
     restrict_to_bed=wgsRegionsBed.regions_bed,
+    # Filtered WGS has no reads in CNVkit's hybrid-mode antitarget bins.
+    cnvkit_method=if wgs_mode then "amplicon" else "hybrid",
     tumor_name=tumor_name,
     normal_sequence=normal_sequence,
     normal_name=normal_name,
@@ -437,6 +439,16 @@ workflow immuno {
     max_var_mm_qualsum=max_var_mm_qualsum
   }
 
+  # In wgs_mode, germline calling reuses the normal alignment from
+  # somaticExome (same sequenceToBqsr and qcExome inputs) instead of
+  # aligning the whole genome a second time.
+  if (wgs_mode) {
+    File wgs_normal_bam = somaticExome.normal_bam
+    File wgs_normal_bam_bai = somaticExome.normal_bam_bai
+    File wgs_normal_mark_duplicates_metrics = somaticExome.normal_mark_duplicates_metrics
+    QCMetrics wgs_normal_qc_metrics = somaticExome.normal_qc_metrics
+  }
+
   call geht.germlineExomeHlaTyping as germlineExome {
     input:
     reference=reference,
@@ -450,6 +462,10 @@ workflow immuno {
     reference_0123=reference_0123,
     sequence=normal_sequence,
     restrict_to_bed=wgsRegionsBed.regions_bed,
+    aligned_bam=wgs_normal_bam,
+    aligned_bam_bai=wgs_normal_bam_bai,
+    aligned_mark_duplicates_metrics=wgs_normal_mark_duplicates_metrics,
+    aligned_qc_metrics=wgs_normal_qc_metrics,
     bqsr_known_sites=bqsr_known_sites,
     bqsr_known_sites_tbi=bqsr_known_sites_tbi,
     bait_intervals=bait_intervals,

@@ -22,6 +22,13 @@ workflow germlineExome {
     Array[SequenceData] sequence
     TrimmingOptions? trimming
     File? restrict_to_bed  # WGS mode, see tools/restrict_to_regions.wdl
+    # An alignment of `sequence` already made with the same inputs (immuno
+    # wgs_mode passes somaticExome's normal). When set, alignment and QC are
+    # skipped and these are used instead; set all four together.
+    File? aligned_bam
+    File? aligned_bam_bai
+    File? aligned_mark_duplicates_metrics
+    QCMetrics? aligned_qc_metrics
     Array[File] bqsr_known_sites
     Array[File] bqsr_known_sites_tbi
     File bait_intervals
@@ -53,33 +60,40 @@ workflow germlineExome {
     String? coding_filter
   }
 
-  call ae.alignmentExome as alignmentAndQc {
-    input:
-    reference=reference,
-    reference_fai=reference_fai,
-    reference_dict=reference_dict,
-    reference_alt=reference_alt,
-    reference_amb=reference_amb,
-    reference_ann=reference_ann,
-    reference_bwt=reference_bwt,
-    reference_pac=reference_pac,
-    reference_0123=reference_0123,
-    sequence=sequence,
-    trimming=trimming,
-    restrict_to_bed=restrict_to_bed,
-    bqsr_known_sites=bqsr_known_sites,
-    bqsr_known_sites_tbi=bqsr_known_sites_tbi,
-    bait_intervals=bait_intervals,
-    target_intervals=target_intervals,
-    per_base_intervals=per_base_intervals,
-    per_target_intervals=per_target_intervals,
-    summary_intervals=summary_intervals,
-    omni_vcf=omni_vcf,
-    omni_vcf_tbi=omni_vcf_tbi,
-    picard_metric_accumulation_level=picard_metric_accumulation_level,
-    qc_minimum_mapping_quality=qc_minimum_mapping_quality,
-    qc_minimum_base_quality=qc_minimum_base_quality
+  if (!defined(aligned_bam)) {
+    call ae.alignmentExome as alignmentAndQc {
+      input:
+      reference=reference,
+      reference_fai=reference_fai,
+      reference_dict=reference_dict,
+      reference_alt=reference_alt,
+      reference_amb=reference_amb,
+      reference_ann=reference_ann,
+      reference_bwt=reference_bwt,
+      reference_pac=reference_pac,
+      reference_0123=reference_0123,
+      sequence=sequence,
+      trimming=trimming,
+      restrict_to_bed=restrict_to_bed,
+      bqsr_known_sites=bqsr_known_sites,
+      bqsr_known_sites_tbi=bqsr_known_sites_tbi,
+      bait_intervals=bait_intervals,
+      target_intervals=target_intervals,
+      per_base_intervals=per_base_intervals,
+      per_target_intervals=per_target_intervals,
+      summary_intervals=summary_intervals,
+      omni_vcf=omni_vcf,
+      omni_vcf_tbi=omni_vcf_tbi,
+      picard_metric_accumulation_level=picard_metric_accumulation_level,
+      qc_minimum_mapping_quality=qc_minimum_mapping_quality,
+      qc_minimum_base_quality=qc_minimum_base_quality
+    }
   }
+
+  File bam = select_first([aligned_bam, alignmentAndQc.bam])
+  File bam_bai = select_first([aligned_bam_bai, alignmentAndQc.bam_bai])
+  File mark_duplicates_metrics_file = select_first([aligned_mark_duplicates_metrics, alignmentAndQc.mark_duplicates_metrics])
+  QCMetrics qc = select_first([aligned_qc_metrics, alignmentAndQc.qc_metrics])
 
   call ile.intervalListExpand as padTargetIntervals {
     input:
@@ -92,11 +106,11 @@ workflow germlineExome {
     reference=reference,
     reference_fai=reference_fai,
     reference_dict=reference_dict,
-    bam=alignmentAndQc.bam,
-    bai=alignmentAndQc.bam_bai,
+    bam=bam,
+    bai=bam_bai,
     gvcf_gq_bands=gvcf_gq_bands,
     intervals=intervals,
-    verify_bam_id_metrics=select_first([alignmentAndQc.qc_metrics.verify_bam_id_metrics]),
+    verify_bam_id_metrics=select_first([qc.verify_bam_id_metrics]),
     ploidy=ploidy,
     vep_cache_dir_zip=vep_cache_dir_zip,
     synonyms_file=synonyms_file,
@@ -116,7 +130,7 @@ workflow germlineExome {
 
   call btc.bamToCram {
     input:
-    bam=alignmentAndQc.bam,
+    bam=bam,
     reference=reference,
     reference_fai=reference_fai,
     reference_dict=reference_dict
@@ -129,8 +143,8 @@ workflow germlineExome {
   output {
     File cram = indexCram.indexed_cram
     File cram_crai = indexCram.indexed_cram_crai
-    File mark_duplicates_metrics = alignmentAndQc.mark_duplicates_metrics
-    QCMetrics qc_metrics = alignmentAndQc.qc_metrics
+    File mark_duplicates_metrics = mark_duplicates_metrics_file
+    QCMetrics qc_metrics = qc
     File raw_vcf = detectVariants.raw_vcf
     File raw_vcf_tbi = detectVariants.raw_vcf_tbi
     File final_vcf = detectVariants.final_vcf
