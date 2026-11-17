@@ -362,7 +362,8 @@ workflow immuno {
       input:
       interval_lists=[bait_intervals, target_intervals],
       reference_dict=reference_dict,
-      padding=wgs_region_padding
+      padding=wgs_region_padding,
+      min_padding=target_interval_padding
     }
   }
 

@@ -48,6 +48,8 @@ sees exome-sized data.
 - **Padded baits and targets.** `target_interval_padding` (default 100) sets
   the calling window. Any read that overlaps the window overlaps the padded
   region, so the default 250 bp keeps every read a caller can see.
+  `wgsRegionsBed` fails if `wgs_region_padding` is below
+  `target_interval_padding`.
 - **MHC, HLA contigs and unmapped reads.** OptiType, HLA-HD and PHLAT extract
   `chr6:29836259-33148325`, the HLA alt contigs and all unmapped reads
   (`samtools view -f 4`) from the CRAM. HLA reads that are too divergent to
@@ -60,16 +62,25 @@ sees exome-sized data.
 - The unaligned FDA metrics still describe the complete input FASTQs/BAMs. The
   aligned metrics describe the filtered alignments.
 - Coverage around the targets is flat, without the bait-shaped falloff of a
-  capture library. CNVkit off-target bins receive reads only from the padding.
+  capture library. CNVkit's antitarget bins farther than the padding from a
+  bait receive no reads, so CNVkit output in `wgs_mode` has not been
+  validated and should not be trusted until it is.
 - A template whose only in-region record is a secondary alignment is dropped.
   `wgs_mode` keeps templates with a supplementary alignment in the regions.
-  The prefilter script (option 2) does not: their primary record lies outside
-  the regions, `--fetch-pairs` returns the mate but not the primary, and the
-  script reports the leftover read as a singleton.
+  The prefilter script (option 2) leaves them out: it fetches primary records
+  only (`-F 0x900`), and their primary records lie outside the regions.
 - `wgs_mode` keeps every unmapped read and its mate. The script keeps unplaced
   unmapped pairs (the index's `*` bin) only: an unmapped read whose mate maps
   outside the regions is placed at that mate's position, and reaching it would
   mean reading the whole file.
+
+### Costs that remain
+
+- Alignment runs on the full genome. `immuno` aligns the normal twice, once
+  in `somaticExome` and once in `germlineExome` (unchanged upstream
+  behavior), so in `wgs_mode` the normal costs two full-genome alignments.
+- `restrictToRegions` localizes each lane's full aligned BAM and reads it
+  three times: the `-L` name pass, the `-f 4` name pass, and the `-N` pass.
 
 ## Option 2: `scripts/wgs_target_prefilter.sh` before the workflow
 

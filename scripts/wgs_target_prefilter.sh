@@ -106,6 +106,10 @@ log() { echo "[$(date '+%H:%M:%S')] $*" >&2; }
 
 [[ -n "$INPUT" ]] || die "-i is required"
 [[ -n "$OUT_PREFIX" ]] || die "-o is required"
+out_dir=$(dirname "$OUT_PREFIX")
+[[ -d "$out_dir" ]] || die "output directory $out_dir does not exist"
+# Absolute, so the paths written to sequences.yaml resolve from anywhere.
+OUT_PREFIX="$(cd "$out_dir" && pwd)/$(basename "$OUT_PREFIX")"
 [[ ${#INTERVAL_FILES[@]} -gt 0 ]] || die "at least one -L interval file is required"
 [[ "$PADDING" =~ ^[0-9]+$ ]] || die "-p must be a non-negative integer"
 for f in "${INTERVAL_FILES[@]}"; do [[ -r "$f" ]] || die "cannot read interval file $f"; done
@@ -165,7 +169,8 @@ printf '%s\t%s\t%s\n' "$hla_chrom" "$((hla_start - 1))" "$hla_end" >> "$WORK/raw
 
 # Pad, clamp to contig length, drop contigs absent from the header, add whole
 # HLA/alt contigs, then sort in header order and merge.
-awk -F'\t' -v OFS='\t' -v pad="$PADDING" -v re="$HLA_CONTIG_REGEX" -v dropped="$WORK/dropped.txt" '
+HLA_CONTIG_REGEX="$HLA_CONTIG_REGEX" awk -F'\t' -v OFS='\t' -v pad="$PADDING" -v dropped="$WORK/dropped.txt" '
+  BEGIN { re = ENVIRON["HLA_CONTIG_REGEX"] }  # -v would rewrite backslash escapes
   FNR==NR { len[$1]=$2; ord[$1]=FNR; if ($1 ~ re) print FNR, $1, 0, $2; next }
   {
     if (!($1 in len)) { missing[$1]++; next }
